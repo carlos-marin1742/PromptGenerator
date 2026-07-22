@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PromptGen</title>
+<style>
+  :root {
+    --bg0:      #11111b;
+    --bg1:      #181825;
+    --bg2:      #1e1e2e;
+    --bg3:      #252535;
+    --border:   #313244;
+    --text:     #cdd6f4;
+    --text-dim: #6c7086;
+    --text-sub: #9399b2;
+    --feature:  #a6e3a1;
+    --fix:      #fab387;
+    --rework:   #89b4fa;
+    --bug:      #f38ba8;
+    --accent:   #cba6f7;
+    --mode-color: var(--feature);
+    --radius: 8px;
+    --radius-sm: 5px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg0); color: var(--text); }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; }
+
+  aside {
+    width: 240px; min-width: 200px;
+    background: var(--bg1);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto; overflow-x: hidden;
+    flex-shrink: 0;
+  }
+
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Titlebar */
+  .titlebar {
+    height: 40px; background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 16px; gap: 10px; flex-shrink: 0;
+  }
+  .titlebar .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--mode-color); transition: background 0.3s;
+  }
+  .app-name { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-sub); }
+  .mode-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--mode-color); transition: color 0.3s; margin-left: auto; }
+
+  /* Sidebar sections */
+  .sidebar-section { padding: 14px 12px 12px; border-bottom: 1px solid var(--border); }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+
+  .icon-btn {
+    width: 22px; height: 22px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--bg2);
+    color: var(--text-sub); font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .icon-btn:hover { background: var(--bg3); color: var(--text); }
+
+  /* Mode grid */
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .mode-btn {
+    padding: 8px 6px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg2);
+    color: var(--text-sub); font-size: 11px; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all 0.15s; letter-spacing: 0.04em;
+  }
+  .mode-btn:hover { background: var(--bg3); }
+  .mode-btn.active[data-mode="feature"] { background: #1a2e1e; color: var(--feature); border-color: var(--feature); }
+  .mode-btn.active[data-mode="fix"]     { background: #2e211a; color: var(--fix);     border-color: var(--fix); }
+  .mode-btn.active[data-mode="rework"]  { background: #1a1f2e; color: var(--rework);  border-color: var(--rework); }
+  .mode-btn.active[data-mode="bug"]     { background: #2e1a1e; color: var(--bug);     border-color: var(--bug); }
+
+  /* Aliases */
+  .alias-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 7px; border-radius: var(--radius-sm);
+    background: var(--bg2); border: 1px solid var(--border);
+    margin-bottom: 5px; cursor: pointer; transition: background 0.12s;
+  }
+  .alias-item:hover { background: var(--bg3); }
+  .alias-shortcut { font-size: 11px; font-family: monospace; color: var(--accent); font-weight: 600; flex-shrink: 0; }
+  .alias-name { font-size: 11px; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .alias-del { font-size: 14px; color: var(--text-dim); cursor: pointer; opacity: 0; transition: opacity 0.12s; }
+  .alias-item:hover .alias-del { opacity: 1; }
+  .alias-del:hover { color: var(--bug); }
+  .empty-hint { font-size: 11px; color: var(--text-dim); font-style: italic; text-align: center; padding: 6px 0; }
+
+  /* Watched folder */
+  .watched-path {
+    font-size: 10px; font-family: monospace; color: var(--text-sub);
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 5px 7px;
+    word-break: break-all; margin-bottom: 8px; display: none;
+  }
+  .detected-file {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 7px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: background 0.12s;
+    font-size: 11px; color: var(--text-sub);
+  }
+  .detected-file:hover { background: var(--bg2); color: var(--text); }
+
+  /* Settings */
+  .settings-row { display: flex; flex-direction: column; gap: 5px; }
+  .settings-row label { font-size: 10px; color: var(--text-dim); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .settings-input {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-size: 11px; padding: 6px 8px; width: 100%; font-family: monospace;
+  }
+  .settings-input:focus { outline: none; border-color: var(--accent); }
+
+  /* Main content */
+  .content-split { display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 14px; gap: 10px; }
+
+  .panel { background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .panel-title { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  .panel-actions { display: flex; gap: 6px; align-items: center; }
+
+  /* Chips */
+  .chips-bar {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    padding: 7px 14px; border-bottom: 1px solid var(--border);
+    min-height: 36px; align-items: center;
+  }
+  .chips-bar.empty::after { content: 'No context attached — click an alias or file from the sidebar'; font-size: 11px; color: var(--text-dim); font-style: italic; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 100px; padding: 3px 10px 3px 8px;
+    font-size: 11px; font-family: monospace; color: var(--accent);
+  }
+  .chip-remove { cursor: pointer; color: var(--text-dim); font-size: 14px; line-height: 1; }
+  .chip-remove:hover { color: var(--bug); }
+
+  textarea {
+    flex: 1; background: transparent; border: none; color: var(--text);
+    font-size: 13.5px; line-height: 1.65; padding: 12px 14px;
+    resize: none; font-family: inherit;
+  }
+  textarea::placeholder { color: var(--text-dim); }
+  textarea:focus { outline: none; }
+
+  /* Output */
+  .prompt-output {
+    flex: 1; padding: 12px 14px; overflow-y: auto;
+    font-size: 12.5px; line-height: 1.7;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
+    color: var(--text); white-space: pre-wrap; word-break: break-word;
+  }
+  .prompt-output.empty { display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-style: italic; font-family: inherit; font-size: 13px; white-space: normal; }
+  .md-h { color: var(--mode-color); font-weight: bold; }
+  .md-dim { color: var(--text-dim); }
+  .md-sub { color: var(--text-sub); }
+
+  .cursor { display: inline-block; width: 2px; height: 14px; background: var(--mode-color); animation: blink 0.9s infinite; vertical-align: middle; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Buttons */
+  .btn { padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .btn-ghost { background: transparent; color: var(--text-sub); }
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); }
+  .btn-primary { background: var(--bg3); border-color: var(--mode-color); color: var(--mode-color); }
+  .btn-primary:hover { background: color-mix(in srgb, var(--mode-color) 12%, transparent); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-copy { background: transparent; color: var(--text-sub); border-color: var(--border); }
+  .btn-copy:hover { color: var(--text); border-color: var(--text-sub); }
+  .btn-copy.copied { color: var(--feature); border-color: var(--feature); }
+
+  /* Gen toggle */
+  .gen-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .gen-toggle-btn { padding: 4px 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: transparent; border: none; color: var(--text-dim); cursor: pointer; transition: background 0.12s, color 0.12s; }
+  .gen-toggle-btn.active { background: var(--bg3); color: var(--text); }
+
+  /* Status bar */
+  .statusbar { height: 24px; background: var(--bg1); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 14px; gap: 10px; flex-shrink: 0; }
+  .statusbar span { font-size: 10px; color: var(--text-dim); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); transition: background 0.3s; }
+  .status-dot.online { background: var(--feature); }
+  .status-dot.offline { background: var(--bug); }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; width: 420px; max-width: 90vw; display: flex; flex-direction: column; gap: 12px; }
+  .modal h3 { font-size: 13px; font-weight: 700; }
+  .modal-field { display: flex; flex-direction: column; gap: 5px; }
+  .modal-field label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .modal-input { background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 7px 10px; width: 100%; font-family: inherit; }
+  .modal-input:focus { outline: none; border-color: var(--accent); }
+  .modal-textarea { min-height: 120px; resize: vertical; font-family: monospace; font-size: 11.5px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside>
+    <!-- Mode -->
+    <div class="sidebar-section">
+      <div class="section-header"><span class="section-title">Mode</span></div>
+      <div class="mode-grid">
+        <button class="mode-btn active" data-mode="feature">⚡ Feature</button>
+        <button class="mode-btn"       data-mode="fix">🔧 Fix</button>
+        <button class="mode-btn"       data-mode="rework">♻️ Rework</button>
+        <button class="mode-btn"       data-mode="bug">🐛 Bug</button>
+      </div>
+    </div>
+
+    <!-- Shortcuts -->
+    <div class="sidebar-section" style="flex:1;overflow-y:auto;min-height:80px;">
+      <div class="section-header">
+        <span class="section-title">Shortcuts</span>
+        <div style="display:flex;gap:4px">
+          <button class="icon-btn" id="addAliasFileBtn" title="Link .md file">📎</button>
+          <button class="icon-btn" id="addAliasPasteBtn" title="Paste .md content">📋</button>
+        </div>
+      </div>
+      <div id="aliasesList"><div class="empty-hint">No shortcuts yet</div></div>
+    </div>
+
+    <!-- Watched Folder -->
+    <div class="sidebar-section" style="overflow-y:auto;min-height:80px;max-height:200px;">
+      <div class="section-header">
+        <span class="section-title">Watched Folder</span>
+        <button class="icon-btn" id="pickFolderBtn" title="Pick folder">📁</button>
+      </div>
+      <div id="watchedPathEl" class="watched-path"></div>
+      <div id="detectedFilesList"><div class="empty-hint">No folder watched</div></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="sidebar-section">
+      <div class="section-header">
+        <span class="section-title">Ollama</span>
+        <div class="status-dot" id="ollamaDot"></div>
+      </div>
+      <div class="settings-row">
+        <label>URL</label>
+        <input class="settings-input" id="ollamaUrlInput" placeholder="http://localhost:11434">
+        <label style="margin-top:6px">Model</label>
+        <input class="settings-input" id="ollamaModelInput" placeholder="llama3.2">
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main>
+    <div class="titlebar">
+      <div class="dot" id="modeDot"></div>
+      <span class="app-name">PromptGen</span>
+      <span class="mode-label" id="modeLabel">Feature</span>
+    </div>
+
+    <div class="content-split">
+      <!-- Input -->
+      <div class="panel" style="flex:0 0 200px;min-height:160px;">
+        <div class="panel-header">
+          <span class="panel-title">Description</span>
+          <div class="panel-actions">
+            <div class="gen-toggle">
+              <button class="gen-toggle-btn active" data-gen="template">Template</button>
+              <button class="gen-toggle-btn" data-gen="ollama">Ollama AI</button>
+            </div>
+          </div>
+        </div>
+        <div class="chips-bar empty" id="chipsBar"></div>
+        <textarea id="descInput" placeholder="Describe what you want to build, fix, or change…"></textarea>
+      </div>
+
+      <!-- Output -->
+      <div class="panel" style="flex:1;min-height:0;">
+        <div class="panel-header">
+          <span class="panel-title">Generated Prompt</span>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" id="clearBtn">Clear</button>
+            <button class="btn btn-primary" id="generateBtn">Generate</button>
+            <button class="btn btn-copy" id="copyBtn">📋 Copy</button>
+          </div>
+        </div>
+        <div class="prompt-output empty" id="promptOutput">Fill in a description and hit Generate →</div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Ready</span>
+      <span id="charCount" style="margin-left:auto"></span>
+    </div>
+  </main>
+</div>
+
+<!-- Alias Modal -->
+<div class="modal-overlay hidden" id="aliasModal">
+  <div class="modal">
+    <h3 id="modalTitle">Add Shortcut</h3>
+    <div class="modal-field">
+      <label>Shortcut name (e.g. auth, db, schema)</label>
+      <input class="modal-input" id="aliasShortcut" placeholder="auth">
+    </div>
+    <div class="modal-field" id="pasteContentField">
+      <label>Paste .md content</label>
+      <textarea class="modal-input modal-textarea" id="aliasPasteContent" placeholder="Paste your markdown here…"></textarea>
+    </div>
+    <div class="modal-field" id="filePathField" style="display:none">
+      <label>Linked file</label>
+      <input class="modal-input" id="aliasFilePath" readonly>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="modalSaveBtn">Save Shortcut</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let store = {}
+let mode = 'feature'
+let genMode = 'template'
+let attached = []
+let generating = false
+let abortController = null
+let autoGenTimer = null
+
+const MODE_COLORS = { feature:'#a6e3a1', fix:'#fab387', rework:'#89b4fa', bug:'#f38ba8' }
+const MODE_LABELS = { feature:'Feature', fix:'Fix', rework:'Rework', bug:'Bug' }
+
+// ── WebSocket for real-time folder updates ─────────────────────────
+const ws = new WebSocket(`ws://${location.host}`)
+ws.onmessage = e => {
+  const msg = JSON.parse(e.data)
+  if (msg.type === 'folder:updated') renderDetectedFiles(msg.files)
+}
+
+// ── API helpers ───────────────────────────────────────────────────
+const api = {
+  get:  url       => fetch(url).then(r => r.json()),
+  post: (url, b)  => fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b) }).then(r => r.json())
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+async function init() {
+  store = await api.get('/api/store')
+  mode = store.lastMode || 'feature'
+  document.getElementById('ollamaUrlInput').value  = store.ollamaUrl  || 'http://localhost:11434'
+  document.getElementById('ollamaModelInput').value = store.ollamaModel || 'llama3.2'
+  applyMode(mode, false)
+  renderAliases()
+  if (store.watchedFolder) {
+    showWatchedPath(store.watchedFolder)
+    const { files } = await api.get(`/api/folder?path=${encodeURIComponent(store.watchedFolder)}`)
+    renderDetectedFiles(files)
+  }
+  checkOllama()
+}
+
+// ── Mode ──────────────────────────────────────────────────────────
+function applyMode(m, doSave=true) {
+  mode = m
+  const color = MODE_COLORS[m]
+  document.documentElement.style.setProperty('--mode-color', color)
+  document.getElementById('modeLabel').textContent = MODE_LABELS[m]
+  document.getElementById('modeDot').style.background = color
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m))
+  if (document.getElementById('descInput').value.trim()) scheduleAutoGen()
+  if (doSave) save({ lastMode: m })
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => applyMode(btn.dataset.mode)))
+
+// ── Gen toggle ────────────────────────────────────────────────────
+document.querySelectorAll('.gen-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    genMode = btn.dataset.gen
+    document.querySelectorAll('.gen-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.gen === genMode))
+  })
+})
+
+// ── Description input ─────────────────────────────────────────────
+const descInput = document.getElementById('descInput')
+descInput.addEventListener('input', () => {
+  const len = descInput.value.length
+  document.getElementById('charCount').textContent = len ? `${len} chars` : ''
+  if (genMode === 'template') scheduleAutoGen()
+})
+
+function scheduleAutoGen() {
+  clearTimeout(autoGenTimer)
+  autoGenTimer = setTimeout(() => { if (genMode === 'template' && descInput.value.trim()) generateTemplate() }, 380)
+}
+
+// ── Generate ──────────────────────────────────────────────────────
+document.getElementById('generateBtn').addEventListener('click', () => {
+  if (genMode === 'ollama') generateOllama()
+  else generateTemplate()
+})
+
+function setStatus(text, type='') {
+  document.getElementById('statusText').textContent = text
+  document.getElementById('statusDot').className = 'status-dot' + (type ? ' ' + type : '')
+}
+
+// ── Template ──────────────────────────────────────────────────────
+function generateTemplate() {
+  const desc = descInput.value.trim()
+  if (!desc) return
+  const context = attached.map(a => `### Context: ${a.name}\n${a.content}`).join('\n\n---\n\n')
+  const prompt = buildPrompt(mode, desc, context)
+  setOutput(highlight(prompt))
+  setStatus('Template generated', 'online')
+}
+
+function buildPrompt(m, desc, context) {
+  const headers = { feature:'# 🚀 Feature Implementation Request', fix:'# 🔧 Fix Request', rework:'# ♻️ Rework / Refactor Request', bug:'# 🐛 Bug Fix Request' }
+  const bodies = {
+    feature: `## Goal\n${desc}\n\n## Requirements\n- Implement the feature as described\n- Follow existing patterns from the provided context\n- Include proper error handling and edge cases\n- Keep code clean, typed, and well-documented\n- Avoid breaking existing functionality\n\n## Deliverables\n- [ ] Implementation code with inline comments\n- [ ] Unit / integration tests\n- [ ] Updated documentation or types`,
+    fix:     `## Issue\n${desc}\n\n## Fix Scope\n- Identify and resolve the specific issue described\n- Make the smallest change necessary\n- Confirm no existing functionality is broken\n- Preserve existing code style and conventions`,
+    rework:  `## Objective\n${desc}\n\n## Rework Goals\n- Improve readability and maintainability\n- Reduce complexity and eliminate duplication\n- Maintain 100% of existing behavior\n- Add or update tests to cover refactored paths\n\n## Constraints\n- Do not add new features — rework only\n- Keep the public API / interface unchanged`,
+    bug:     `## Problem\n${desc}\n\n## Root Cause Analysis\n- Identify the exact cause of the bug\n- Trace through the relevant execution path\n\n## Fix Requirements\n- Implement a targeted, minimal fix\n- Avoid broad changes that could cause regressions\n- Add a test that fails before the fix and passes after\n\n## Verification\n- [ ] Reproduces before fix\n- [ ] Resolved after change\n- [ ] Regression tests pass`,
+  }
+  let out = headers[m] + '\n\n'
+  if (context) out += `## Context\n\n${context}\n\n---\n\n`
+  out += bodies[m]
+  out += `\n\n---\n_PromptGen · ${MODE_LABELS[m]} mode_`
+  return out
+}
+
+// ── Ollama ────────────────────────────────────────────────────────
+async function generateOllama() {
+  if (generating) { abortController?.abort(); return }
+  const desc = descInput.value.trim()
+  if (!desc) { setStatus('Add a description first', ''); return }
+  const ollamaUrl   = document.getElementById('ollamaUrlInput').value.trim()
+  const ollamaModel = document.getElementById('ollamaModelInput').value.trim()
+  if (!ollamaModel) { setStatus('Set an Ollama model first', 'offline'); return }
+
+  const context = attached.map(a => `## Context: ${a.name}\n${a.content}`).join('\n\n---\n\n')
+  const fullPrompt = [
+    `You are a technical prompt engineer. Generate a thorough, structured AI coding prompt.`,
+    `Mode: ${MODE_LABELS[mode]}`,
+    context ? `Context files:\n${context}` : '',
+    `Task description: ${desc}`,
+    `Output ONLY the final prompt text — no preamble, no explanation.`
+  ].filter(Boolean).join('\n\n')
+
+  generating = true
+  abortController = new AbortController()
+  document.getElementById('generateBtn').textContent = '⏹ Stop'
+  setStatus(`Generating with ${ollamaModel}…`, '')
+
+  const out = document.getElementById('promptOutput')
+  out.className = 'prompt-output'
+  out.innerHTML = '<span class="cursor"></span>'
+  let text = ''
+
+  try {
+    const res = await fetch(`${ollamaUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: ollamaModel, prompt: fullPrompt, stream: true }),
+      signal: abortController.signal
+    })
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+    const reader = res.body.getReader()
+    const dec = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      for (const line of dec.decode(value).split('\n').filter(Boolean)) {
+        try {
+          const d = JSON.parse(line)
+          if (d.response) { text += d.response; out.innerHTML = highlight(text) + '<span class="cursor"></span>'; out.scrollTop = out.scrollHeight }
+        } catch (_) {}
+      }
+    }
+    out.innerHTML = highlight(text)
+    setStatus(`Done · ${ollamaModel}`, 'online')
+  } catch (err) {
+    if (err.name === 'AbortError') { out.innerHTML = highlight(text); setStatus('Stopped', '') }
+    else { out.innerHTML = `<span style="color:var(--bug)">Ollama error: ${err.message}\n\nMake sure Ollama is running: ollama serve</span>`; setStatus('Ollama error', 'offline') }
+  } finally {
+    generating = false
+    document.getElementById('generateBtn').textContent = 'Generate'
+  }
+}
+
+// ── Copy ──────────────────────────────────────────────────────────
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = document.getElementById('promptOutput').innerText.trim()
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn')
+    btn.textContent = '✓ Copied!'
+    btn.classList.add('copied')
+    setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied') }, 1800)
+  })
+})
+
+// ── Clear ─────────────────────────────────────────────────────────
+document.getElementById('clearBtn').addEventListener('click', () => {
+  descInput.value = ''
+  attached = []
+  renderChips()
+  const out = document.getElementById('promptOutput')
+  out.className = 'prompt-output empty'
+  out.innerHTML = 'Fill in a description and hit Generate →'
+  document.getElementById('charCount').textContent = ''
+  setStatus('Cleared', '')
+})
+
+// ── Highlight ─────────────────────────────────────────────────────
+function highlight(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^(#{1,3} .+)$/gm, '<span class="md-h">$1</span>')
+    .replace(/^(- \[[ x]\] .+)$/gm, '<span class="md-sub">$1</span>')
+    .replace(/^(---+)$/gm, '<span class="md-dim">$1</span>')
+    .replace(/^(_PromptGen.+)$/gm, '<span class="md-dim">$1</span>')
+}
+
+function setOutput(html) {
+  const out = document.getElementById('promptOutput')
+  out.className = 'prompt-output'
+  out.innerHTML = html
+}
+
+// ── Chips ─────────────────────────────────────────────────────────
+function attachContext(key, name, content) {
+  if (attached.find(a => a.key === key)) return
+  attached.push({ key, name, content })
+  renderChips()
+  if (genMode === 'template' && descInput.value.trim()) scheduleAutoGen()
+}
+
+function detachContext(key) {
+  attached = attached.filter(a => a.key !== key)
+  renderChips()
+  if (genMode === 'template' && descInput.value.trim()) scheduleAutoGen()
+}
+
+function renderChips() {
+  const bar = document.getElementById('chipsBar')
+  if (attached.length === 0) { bar.innerHTML = ''; bar.classList.add('empty'); return }
+  bar.classList.remove('empty')
+  bar.innerHTML = attached.map(a =>
+    `<span class="chip">📄 ${esc(a.name)}<span class="chip-remove" onclick="detachContext('${escA(a.key)}')">×</span></span>`
+  ).join('')
+}
+
+// ── Aliases ───────────────────────────────────────────────────────
+function renderAliases() {
+  const list = document.getElementById('aliasesList')
+  const aliases = store.aliases || {}
+  const keys = Object.keys(aliases)
+  if (!keys.length) { list.innerHTML = '<div class="empty-hint">No shortcuts yet</div>'; return }
+  list.innerHTML = keys.map(k => {
+    const a = aliases[k]
+    return `<div class="alias-item" onclick="attachAlias('${escA(k)}')">
+      <span class="alias-shortcut">/${esc(k)}</span>
+      <span class="alias-name">${esc(a.name||k)}</span>
+      <span class="alias-del" onclick="event.stopPropagation();deleteAlias('${escA(k)}')">×</span>
+    </div>`
+  }).join('')
+}
+
+function attachAlias(key) {
+  const a = store.aliases?.[key]
+  if (a) attachContext(`alias:${key}`, a.name||key, a.content||'')
+}
+
+async function deleteAlias(key) {
+  const aliases = { ...(store.aliases||{}) }
+  delete aliases[key]
+  store.aliases = aliases
+  await save({ aliases })
+  renderAliases()
+  detachContext(`alias:${key}`)
+}
+
+// ── Alias modal ───────────────────────────────────────────────────
+let modalMode = 'paste'
+
+document.getElementById('addAliasPasteBtn').addEventListener('click', () => {
+  modalMode = 'paste'
+  document.getElementById('modalTitle').textContent = 'Paste .md Content'
+  document.getElementById('pasteContentField').style.display = 'flex'
+  document.getElementById('filePathField').style.display = 'none'
+  document.getElementById('aliasShortcut').value = ''
+  document.getElementById('aliasPasteContent').value = ''
+  document.getElementById('aliasModal').classList.remove('hidden')
+  setTimeout(() => document.getElementById('aliasShortcut').focus(), 50)
+})
+
+document.getElementById('addAliasFileBtn').addEventListener('click', async () => {
+  const { path: filePath } = await api.post('/api/open-file-dialog', {})
+  if (!filePath) return
+  modalMode = 'file'
+  const name = filePath.split(/[\\/]/).pop().replace(/\.(md|markdown)$/i,'')
+  document.getElementById('modalTitle').textContent = 'Link .md File'
+  document.getElementById('pasteContentField').style.display = 'none'
+  document.getElementById('filePathField').style.display = 'flex'
+  document.getElementById('aliasFilePath').value = filePath
+  document.getElementById('aliasShortcut').value = name.toLowerCase().replace(/\s+/g,'-')
+  document.getElementById('aliasModal').classList.remove('hidden')
+  setTimeout(() => document.getElementById('aliasShortcut').focus(), 50)
+})
+
+document.getElementById('modalCancelBtn').addEventListener('click', () => document.getElementById('aliasModal').classList.add('hidden'))
+document.getElementById('aliasModal').addEventListener('click', e => { if (e.target.id === 'aliasModal') e.target.classList.add('hidden') })
+
+document.getElementById('modalSaveBtn').addEventListener('click', async () => {
+  const key = document.getElementById('aliasShortcut').value.trim().replace(/^\//,'').toLowerCase()
+  if (!key) { document.getElementById('aliasShortcut').focus(); return }
+  let content = '', name = key, filePath = null
+  if (modalMode === 'paste') {
+    content = document.getElementById('aliasPasteContent').value
+  } else {
+    filePath = document.getElementById('aliasFilePath').value
+    const res = await api.get(`/api/file?path=${encodeURIComponent(filePath)}`)
+    content = res.content || ''
+    name = filePath.split(/[\\/]/).pop()
+  }
+  const aliases = { ...(store.aliases||{}), [key]: { name, content, filePath } }
+  store.aliases = aliases
+  await save({ aliases })
+  renderAliases()
+  document.getElementById('aliasModal').classList.add('hidden')
+})
+
+// ── Watched folder ────────────────────────────────────────────────
+document.getElementById('pickFolderBtn').addEventListener('click', async () => {
+  const { path: folderPath } = await api.post('/api/open-folder-dialog', {})
+  if (!folderPath) return
+  store.watchedFolder = folderPath
+  await save({ watchedFolder: folderPath })
+  showWatchedPath(folderPath)
+  const { files } = await api.get(`/api/folder?path=${encodeURIComponent(folderPath)}`)
+  renderDetectedFiles(files)
+})
+
+function showWatchedPath(p) {
+  const el = document.getElementById('watchedPathEl')
+  el.textContent = p.length > 30 ? '…' + p.slice(-28) : p
+  el.title = p
+  el.style.display = 'block'
+}
+
+function renderDetectedFiles(files) {
+  const list = document.getElementById('detectedFilesList')
+  if (!files.length) { list.innerHTML = '<div class="empty-hint">No .md files found</div>'; return }
+  list.innerHTML = files.map(f =>
+    `<div class="detected-file" onclick="attachWatchedFile('${escA(f.path)}','${escA(f.name)}')" title="${esc(f.path)}">
+      <span>📄</span><span>${esc(f.name)}</span>
+    </div>`
+  ).join('')
+}
+
+async function attachWatchedFile(filePath, name) {
+  const res = await api.get(`/api/file?path=${encodeURIComponent(filePath)}`)
+  attachContext(`file:${filePath}`, name, res.content||'')
+}
+
+// ── Ollama status ─────────────────────────────────────────────────
+async function checkOllama() {
+  const url = document.getElementById('ollamaUrlInput').value.trim()
+  const dot = document.getElementById('ollamaDot')
+  try {
+    const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(2500) })
+    dot.className = 'status-dot ' + (res.ok ? 'online' : 'offline')
+  } catch { dot.className = 'status-dot offline' }
+}
+
+document.getElementById('ollamaUrlInput').addEventListener('change', () => { save({ ollamaUrl: document.getElementById('ollamaUrlInput').value.trim() }); checkOllama() })
+document.getElementById('ollamaModelInput').addEventListener('change', () => save({ ollamaModel: document.getElementById('ollamaModelInput').value.trim() }))
+setInterval(checkOllama, 30000)
+
+// ── Persist ───────────────────────────────────────────────────────
+async function save(partial) {
+  store = { ...store, ...partial }
+  await api.post('/api/store', store)
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+const esc  = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+const escA = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")
+
+init()
+</script>
+</body>
+</html>

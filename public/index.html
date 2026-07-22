@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PromptGen</title>
+<style>
+  :root {
+    --bg0: #11111b; --bg1: #181825; --bg2: #1e1e2e; --bg3: #252535;
+    --border: #313244; --text: #cdd6f4; --text-dim: #6c7086; --text-sub: #9399b2;
+    --feature: #a6e3a1; --bug: #f38ba8; --rework: #89b4fa; --fix: #fab387;
+    --accent: #cba6f7; --mode-color: var(--feature);
+    --radius: 8px; --radius-sm: 5px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg0); color: var(--text); }
+
+  /* ── Layout ── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  aside {
+    width: 210px; flex-shrink: 0;
+    background: var(--bg1); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .workspace {
+    flex: 1; display: flex; overflow: hidden;
+  }
+
+  .form-panel {
+    width: 42%; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg0);
+  }
+
+  .output-panel {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg0);
+  }
+
+  /* ── Titlebar ── */
+  .titlebar {
+    height: 38px; background: var(--bg1); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 14px; gap: 9px; flex-shrink: 0;
+  }
+  .titlebar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mode-color); transition: background .3s; }
+  .app-name { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-sub); }
+  .mode-pill {
+    margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--mode-color); background: color-mix(in srgb, var(--mode-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mode-color) 35%, transparent);
+    padding: 2px 9px; border-radius: 100px; transition: all .3s;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar-section { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .section-title { font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+
+  .mode-list { display: flex; flex-direction: column; gap: 4px; }
+  .mode-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: var(--radius-sm);
+    border: 1px solid transparent; background: transparent;
+    color: var(--text-sub); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .15s; text-align: left; width: 100%;
+  }
+  .mode-btn .m-icon { font-size: 14px; flex-shrink: 0; }
+  .mode-btn .m-sub { font-size: 9px; color: var(--text-dim); font-weight: 400; display: block; margin-top: 1px; }
+  .mode-btn:hover { background: var(--bg2); color: var(--text); }
+  .mode-btn.active[data-mode="feature"] { background: #1a2e1e; color: var(--feature); border-color: color-mix(in srgb,var(--feature) 40%,transparent); }
+  .mode-btn.active[data-mode="bug"]     { background: #2e1a1e; color: var(--bug);     border-color: color-mix(in srgb,var(--bug) 40%,transparent); }
+  .mode-btn.active[data-mode="rework"]  { background: #1a1f2e; color: var(--rework);  border-color: color-mix(in srgb,var(--rework) 40%,transparent); }
+  .mode-btn.active[data-mode="fix"]     { background: #2e221a; color: var(--fix);     border-color: color-mix(in srgb,var(--fix) 40%,transparent); }
+
+  /* ── Context shortcuts ── */
+  /* ── Panel headers ── */
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg1);
+  }
+  .panel-title { font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); }
+  .panel-actions { display: flex; gap: 5px; align-items: center; }
+  .format-select {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); font-size: 10px; font-weight: 700; padding: 4px 24px 4px 8px;
+    cursor: pointer; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .format-select:focus { outline: none; border-color: var(--mode-color); color: var(--text); }
+
+  /* ── Form fields ── */
+  .form-scroll { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-sub); display: flex; align-items: center; gap: 6px;
+  }
+  .field-label .opt { font-size: 9px; color: var(--text-dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .field-label .req { color: var(--mode-color); font-size: 12px; line-height: 1; }
+
+  .field-input, .field-textarea {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 12.5px; padding: 8px 10px; width: 100%;
+    font-family: inherit; line-height: 1.55; transition: border-color .15s;
+    resize: vertical;
+  }
+  .field-input { resize: none; height: 36px; }
+  .field-textarea { min-height: 72px; }
+  .field-textarea.list-field { min-height: 60px; font-family: monospace; font-size: 12px; }
+  .field-input:focus, .field-textarea:focus { outline: none; border-color: var(--mode-color); }
+  .field-input::placeholder, .field-textarea::placeholder { color: var(--text-dim); }
+
+  .field-hint { font-size: 10px; color: var(--text-dim); }
+
+  .progress-bar {
+    height: 2px; background: var(--border); border-radius: 1px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--mode-color); border-radius: 1px;
+    transition: width .3s, background .3s;
+  }
+
+  /* ── Output ── */
+  .prompt-output {
+    flex: 1; padding: 14px; overflow-y: auto;
+    font-size: 12px; line-height: 1.75; font-family: 'Consolas', 'Cascadia Code', monospace;
+    color: var(--text); white-space: pre-wrap; word-break: break-word;
+  }
+  .prompt-output.empty {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-style: italic; font-family: inherit; font-size: 13px; white-space: normal; text-align: center;
+  }
+  .md-h1 { color: var(--mode-color); font-weight: bold; font-size: 13px; }
+  .md-h2 { color: var(--text); font-weight: bold; }
+  .md-h3 { color: var(--text-sub); font-weight: bold; }
+  .md-dim { color: var(--text-dim); }
+  .md-rule { color: var(--border); }
+  .md-bracket { color: color-mix(in srgb, var(--mode-color) 60%, var(--text-dim)); font-style: italic; }
+
+  /* ── Buttons ── */
+  .btn { padding: 4px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 10px; font-weight: 700; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; letter-spacing: .04em; text-transform: uppercase; }
+  .btn-ghost { background: transparent; color: var(--text-sub); }
+  .btn-ghost:hover { background: var(--bg2); color: var(--text); }
+  .btn-copy { background: transparent; color: var(--text-sub); border-color: var(--border); }
+  .btn-copy:hover { color: var(--text); }
+  .btn-copy.copied { color: var(--feature); border-color: var(--feature); }
+
+  /* ── Statusbar ── */
+  .statusbar { height: 22px; background: var(--bg1); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 12px; gap: 10px; flex-shrink: 0; }
+  .statusbar span { font-size: 10px; color: var(--text-dim); }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dim); }
+  .status-dot.ok { background: var(--feature); }
+
+  /* ── Modal ── */
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Sidebar ── -->
+  <aside>
+    <div class="titlebar" style="border-right:none">
+      <div class="dot" id="modeDot"></div>
+      <span class="app-name">PromptGen</span>
+    </div>
+
+    <!-- Modes -->
+    <div class="sidebar-section">
+      <div class="section-title">Mode</div>
+      <div class="mode-list">
+        <button class="mode-btn active" data-mode="feature">
+          <span class="m-icon">⚡</span>
+          <span><span style="display:block">Feature</span><span class="m-sub">Add new functionality</span></span>
+        </button>
+        <button class="mode-btn" data-mode="bug">
+          <span class="m-icon">🐛</span>
+          <span><span style="display:block">Bug Fix</span><span class="m-sub">Investigate & fix</span></span>
+        </button>
+        <button class="mode-btn" data-mode="rework">
+          <span class="m-icon">♻️</span>
+          <span><span style="display:block">Rework</span><span class="m-sub">Refactor existing</span></span>
+        </button>
+        <button class="mode-btn" data-mode="fix">
+          <span class="m-icon">🔧</span>
+          <span><span style="display:block">Regression</span><span class="m-sub">Fix broken behavior</span></span>
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Workspace ── -->
+  <div class="workspace">
+
+    <!-- Form panel -->
+    <div class="form-panel">
+      <div class="panel-header">
+        <span class="panel-title" id="formTitle">New Feature</span>
+        <button class="btn btn-ghost" id="clearBtn">Clear all</button>
+      </div>
+      <div class="form-scroll" id="formScroll"></div>
+    </div>
+
+    <!-- Output panel -->
+    <div class="output-panel">
+      <div class="panel-header">
+        <span class="panel-title">Generated prompt</span>
+        <div class="panel-actions">
+          <select class="format-select" id="formatSelect" aria-label="Prompt format">
+            <option value="generic">Generic</option>
+            <option value="codex">Codex</option>
+            <option value="claude">Claude Code</option>
+          </select>
+          <span id="charCount" style="font-size:10px;color:var(--text-dim)"></span>
+          <button class="btn btn-copy" id="copyBtn">📋 Copy</button>
+        </div>
+      </div>
+      <div class="prompt-output empty" id="promptOutput">
+        Fill in the fields on the left →
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Statusbar -->
+<div class="statusbar">
+  <div class="status-dot ok" id="statusDot"></div>
+  <span id="statusText">Ready</span>
+</div>
+
+<script>
+// ── Mode config ────────────────────────────────────────────────────
+const MODE_COLORS = { feature:'#a6e3a1', bug:'#f38ba8', rework:'#89b4fa', fix:'#fab387' }
+
+const MODES = {
+  feature: {
+    label: 'New Feature', title: '# Add a New Feature',
+    fields: [
+      { id:'feature_request',   label:'Feature request',   placeholder:'Describe the feature you want to add.',                          type:'textarea', rows:3 },
+      { id:'expected_behavior', label:'Expected behavior',  placeholder:'Describe what the user should be able to do and what should happen.', type:'textarea', rows:3 },
+      { id:'requirements',      label:'Requirements',        placeholder:'One requirement per line:\nAuthenticated users only\nMobile responsive\nReal-time updates', type:'list' },
+    ]
+  },
+  bug: {
+    label: 'Bug Fix', title: '# Investigate and Fix a Bug',
+    fields: [
+      { id:'bug',               label:'Bug',               placeholder:'Describe the problem.',              type:'textarea', rows:3 },
+      { id:'expected_behavior', label:'Expected behavior',  placeholder:'Describe what should happen.',       type:'textarea', rows:2 },
+      { id:'actual_behavior',   label:'Actual behavior',    placeholder:'Describe what currently happens.',   type:'textarea', rows:2 },
+      { id:'steps',             label:'Steps to reproduce', placeholder:'One step per line:\nLog in as admin\nNavigate to /settings\nClick Save', type:'list' },
+      { id:'errors',            label:'Errors / logs',      placeholder:'Paste error messages, stack traces, console output…', type:'textarea', rows:3, optional:true },
+    ]
+  },
+  rework: {
+    label: 'Rework Feature', title: '# Rework an Existing Feature',
+    fields: [
+      { id:'feature_to_rework', label:'Feature to rework',                         placeholder:'Describe the current feature.',                                     type:'textarea', rows:3 },
+      { id:'problems',          label:'Problems with the current implementation',   placeholder:'One problem per line:\nTightly coupled to the auth module\nNo error handling\nDuplicates logic from UserService', type:'list' },
+      { id:'desired_behavior',  label:'Desired behavior',                           placeholder:'Describe how the feature should behave after the rework.',          type:'textarea', rows:3 },
+      { id:'preserved',         label:'Existing behavior that must remain unchanged', placeholder:'One behavior per line:\nPublic API contract stays the same\nExisting tests must still pass', type:'list' },
+    ]
+  },
+  fix: {
+    label: 'Regression Fix', title: '# Fix a Regression Caused by a Recent Change',
+    fields: [
+      { id:'broken_behavior',  label:'Broken behavior',                  placeholder:'Describe what is no longer working.',                               type:'textarea', rows:2 },
+      { id:'last_working',     label:'Last known working behavior',       placeholder:'Describe how it worked before.',                                    type:'textarea', rows:2 },
+      { id:'recent_change',    label:'Recent change that may be related', placeholder:'Describe the recent feature, refactor, commit, merge, or dependency update.', type:'textarea', rows:2 },
+      { id:'current_behavior', label:'Current behavior',                  placeholder:'Describe what happens now.',                                        type:'textarea', rows:2 },
+      { id:'steps',            label:'Steps to reproduce',                placeholder:'One step per line:\nCheckout main\nRun npm start\nNavigate to /dashboard', type:'list' },
+      { id:'errors',           label:'Errors / logs',                     placeholder:'Paste relevant errors, logs, or stack traces.',                     type:'textarea', rows:3, optional:true },
+    ]
+  }
+}
+
+// ── Fixed instruction blocks ───────────────────────────────────────
+const INSTRUCTIONS = {
+  feature: `## Instructions
+
+Before modifying any files:
+
+1. Inspect the repository structure.
+2. Read the relevant configuration files, package files, documentation, and existing tests.
+3. Trace the existing frontend, backend, API, authentication, and database patterns related to this feature.
+4. Identify the files that need to be created or modified.
+5. Check for existing utilities, components, hooks, services, routes, schemas, and models that can be reused.
+6. Briefly explain your implementation plan.
+
+Then implement the feature.
+
+Follow these rules:
+
+* Follow the repository's existing architecture and coding conventions.
+* Do not place large amounts of new logic into an already oversized file.
+* Create focused modules when appropriate.
+* Do not duplicate existing utilities or business logic.
+* Do not modify unrelated functionality.
+* Preserve existing API contracts unless the requested feature requires a change.
+* Add validation, error handling, authorization, loading states, and empty states where applicable.
+* Do not expose secrets or sensitive information.
+* Do not add a new dependency unless it provides clear value.
+* If you add a dependency, explain why it is necessary.
+* Add or update tests for the new behavior.
+
+After implementation:
+
+1. Run the relevant formatter, linter, type checker, tests, and build commands available in the repository.
+2. Fix any failures caused by your changes.
+3. Review the final diff for unnecessary or unrelated modifications.
+4. Confirm that the complete feature flow works, not only that the code compiles.
+
+Finish with:
+
+* A summary of what you implemented.
+* A list of files created or modified.
+* Any database migrations, environment variables, dependencies, or setup steps required.
+* The commands you ran to validate the work.
+* Any remaining limitations or risks.
+
+Do not only provide code snippets or instructions. Inspect the repository and make the necessary changes directly.`,
+
+  bug: `## Instructions
+
+Investigate the bug before editing files.
+
+1. Inspect the repository structure and relevant documentation.
+2. Locate the code responsible for the affected behavior.
+3. Trace the full flow across the UI, state management, API, backend, authentication, and database as applicable.
+4. Reproduce the issue with an existing test, a new failing test, or a reliable local command when possible.
+5. Determine the root cause.
+6. Check whether the same underlying issue exists elsewhere in the repository.
+
+Do not immediately patch the first suspicious line.
+
+Once you understand the root cause, implement the smallest reliable fix.
+
+Follow these rules:
+
+* Fix the root cause rather than hiding the visible symptom.
+* Do not remove working functionality to make the error disappear.
+* Do not rewrite unrelated files.
+* Preserve existing behavior and public interfaces wherever possible.
+* Avoid temporary workarounds, broad exception swallowing, arbitrary delays, or hardcoded values.
+* Add appropriate validation and error handling.
+* Add or update a regression test that fails before the fix and passes afterward.
+* Keep the change focused and easy to review.
+
+After making the fix:
+
+1. Run the relevant formatter, linter, type checker, tests, and build commands.
+2. Fix failures introduced by your changes.
+3. Review the final diff for unrelated modifications.
+4. Verify the original reproduction steps.
+5. Test nearby behavior that could have been affected.
+
+Finish with:
+
+* The root cause.
+* The fix you implemented.
+* The files modified.
+* The tests or commands you ran.
+* How you verified the bug is resolved.
+* Any remaining risks or related issues you discovered.
+
+Do not only explain the solution. Inspect the repository, edit the necessary files, and validate the fix directly.`,
+
+  rework: `## Instructions
+
+Before modifying the implementation:
+
+1. Inspect the repository structure.
+2. Trace the complete feature flow.
+3. Identify all connected components, hooks, state, routes, controllers, services, schemas, models, database tables, and tests.
+4. Distinguish behavior that must be preserved from behavior that should change.
+5. Look for duplicated logic, tight coupling, oversized files, inconsistent validation, and obsolete code.
+6. Review existing tests to understand the current behavioral contract.
+7. Briefly explain your rework plan and the files likely to be affected.
+
+Then rework the feature.
+
+Follow these rules:
+
+* Preserve all behavior listed under "Existing behavior that must remain unchanged."
+* Do not rewrite the entire application.
+* Keep the change limited to the feature and its direct dependencies.
+* Follow existing architecture and naming conventions.
+* Break large logic into focused modules only where it improves maintainability.
+* Reuse existing utilities and abstractions.
+* Avoid premature abstractions and unnecessary dependencies.
+* Maintain backward compatibility for APIs and stored data where practical.
+* If a breaking change is necessary, clearly document it.
+* Update validation, authorization, error handling, loading states, and user feedback where applicable.
+* Remove obsolete code only after confirming that it is no longer referenced.
+* Add or update tests for both the preserved behavior and the new behavior.
+
+After implementation:
+
+1. Run the relevant formatter, linter, type checker, tests, and build commands.
+2. Fix failures caused by the rework.
+3. Review the final diff for accidental behavior changes.
+4. Verify the complete feature flow.
+5. Confirm that preserved behavior still works.
+
+Finish with:
+
+* A before-and-after summary.
+* The architectural or behavioral changes made.
+* A list of files created, modified, or removed.
+* Any API, database, dependency, or configuration changes.
+* The commands used to validate the implementation.
+* Known risks, migration concerns, or follow-up recommendations.
+
+Do not only recommend a rework. Inspect the repository and implement it directly.`,
+
+  fix: `## Instructions
+
+Investigate this as a regression.
+
+1. Inspect the repository and relevant documentation.
+2. Review the current Git status and diff before editing files.
+3. Examine recent commits or file history related to the affected area when Git history is available.
+4. Compare the current implementation with the last known working implementation.
+5. Trace the complete affected flow.
+6. Identify the exact change or interaction that introduced the regression.
+7. Determine whether the safest solution is to correct the new implementation, restore a removed behavior, or partially revert a specific change.
+
+Before editing, briefly state:
+
+* The likely regression source.
+* The intended fix.
+* The behavior that must be preserved from both the old and new implementations.
+
+Then implement a targeted fix.
+
+Follow these rules:
+
+* Restore the previously working behavior.
+* Preserve the intended benefits of the recent change.
+* Do not perform a broad rollback unless it is clearly the safest option.
+* Do not overwrite unrelated uncommitted work.
+* Do not introduce duplicate logic, hardcoded exceptions, or temporary hacks.
+* Preserve existing APIs and data formats where possible.
+* Add a regression test covering the exact failure.
+* Test the newer functionality that originally caused the regression.
+* Check closely related flows for the same issue.
+
+After making the fix:
+
+1. Run the relevant formatter, linter, type checker, tests, and build commands.
+2. Reproduce the original failure and confirm it is resolved.
+3. Verify that the recent functionality still works.
+4. Review the final diff for unrelated changes.
+
+Finish with:
+
+* The change that introduced the regression.
+* The underlying root cause.
+* The targeted fix.
+* Why the fix is safer than a full rollback.
+* The files modified.
+* The tests and validation commands run.
+* Any related areas that may require additional testing.
+
+Do not only describe the fix. Inspect the repository, modify the files, and validate both the restored and newer behavior directly.`
+}
+
+// ── State ──────────────────────────────────────────────────────────
+const FORMAT_PROFILES = {
+  generic: {
+    intro: `Act as a senior software engineer working directly inside an existing repository.
+
+Your responsibility is to investigate the actual codebase, implement the requested outcome, and verify it with evidence. Treat the repository as the source of truth; do not invent files, APIs, behavior, or test results.`,
+    outro: `Carry the task through implementation and validation. If something cannot be completed, clearly identify the exact blocker and the evidence for it.`
+  },
+  codex: {
+    intro: `You are Codex, an autonomous coding agent working directly inside an existing software repository.
+
+Use the available repository and terminal tools to inspect the codebase, make the requested changes, and validate the result. Treat observed code and command output as the source of truth. Keep the work scoped to the task, preserve unrelated user changes, and make reasonable in-scope decisions without unnecessary clarification.`,
+    outro: `Proceed autonomously when the repository provides enough information. Do not stop after proposing a plan or showing snippets: edit the files, run proportionate checks, inspect the final diff, and report the completed result with precise file and validation details. Never claim a command passed unless you ran it and observed the result.`
+  },
+  claude: {
+    intro: `You are Claude Code, working directly inside an existing software repository.
+
+Use your tools to inspect the relevant code before editing. Treat the repository and tool results as authoritative. Follow established project patterns, keep changes focused, preserve unrelated work, and base every technical conclusion on evidence rather than assumption.`,
+    outro: `Complete the task end to end. Implement the requested change rather than only explaining it. Re-read the affected code, verify the behavior with the strongest available checks, and finish with a concise summary of changes, files touched, exact checks run, and any genuine remaining risks. Do not report unverified work as complete.`
+  }
+}
+
+const OPERATING_RULES = `## Required operating rules
+
+1. Read the task completely and identify the requested outcome, constraints, and acceptance criteria before editing.
+2. Inspect the relevant implementation, call sites, configuration, tests, and repository conventions. Do not guess when the answer can be discovered locally.
+3. Distinguish confirmed facts from assumptions. Resolve important assumptions through inspection or a focused check.
+4. Prefer the smallest complete change that solves the root problem. Avoid unrelated cleanup, speculative abstractions, and broad rewrites.
+5. Preserve backward compatibility, security boundaries, data integrity, accessibility, and error handling unless the task explicitly changes them.
+6. Preserve existing user changes. Do not overwrite or revert unrelated work.
+7. Add or update tests when behavior changes. Test meaningful outcomes and failure cases, not only implementation details.
+8. Run the most relevant available validation commands. Never claim a check passed unless it was actually run successfully.
+9. Review the final diff for correctness, scope, dead code, debug artifacts, exposed secrets, and accidental changes.
+10. If a requirement is genuinely ambiguous and materially changes the implementation, state the ambiguity and ask one focused question. Otherwise, make the safest reasonable in-scope assumption and continue.
+
+Definition of done:
+
+* The requested behavior is implemented in the repository, not merely described.
+* The solution follows existing project patterns and handles applicable edge cases.
+* Relevant validation has passed, or failures and blockers are reported exactly.
+* The final response clearly separates completed work, validation evidence, and remaining risks.`
+
+let store = {}
+let mode = 'feature'
+let outputFormat = 'generic'
+let autoTimer = null
+const api = {
+  get:  url     => fetch(url).then(r=>r.json()),
+  post: (url,b) => fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json())
+}
+
+// Per-mode form values (in-memory)
+const formValues = { feature:{}, bug:{}, rework:{}, fix:{} }
+
+// ── Init ──────────────────────────────────────────────────────────
+async function init() {
+  store = await api.get('/api/store')
+  mode = store.lastMode || 'feature'
+  outputFormat = FORMAT_PROFILES[store.outputFormat] ? store.outputFormat : 'generic'
+  document.getElementById('formatSelect').value = outputFormat
+
+  // Restore saved form values
+  if (store.formValues) {
+    Object.assign(formValues, store.formValues)
+  }
+
+  applyMode(mode, false)
+}
+
+// ── Mode ──────────────────────────────────────────────────────────
+function applyMode(m, doSave=true) {
+  mode = m
+  const color = MODE_COLORS[m]
+  document.documentElement.style.setProperty('--mode-color', color)
+  document.getElementById('modeDot').style.background = color
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m))
+  document.getElementById('formTitle').textContent = MODES[m].label
+
+  // Update all border/focus colors of existing inputs
+  renderForm()
+  generate()
+  if (doSave) save({ lastMode: m })
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => applyMode(btn.dataset.mode)))
+document.getElementById('formatSelect').addEventListener('change', event => {
+  outputFormat = event.target.value
+  save({ outputFormat })
+  generate()
+})
+
+// ── Form rendering ─────────────────────────────────────────────────
+function renderForm() {
+  const container = document.getElementById('formScroll')
+  const cfg = MODES[mode]
+  const saved = formValues[mode]
+
+  container.innerHTML = ''
+
+  cfg.fields.forEach(f => {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'field'
+
+    const label = document.createElement('label')
+    label.className = 'field-label'
+    label.htmlFor = `f_${f.id}`
+    label.innerHTML = `${f.label}${f.optional ? ' <span class="opt">(optional)</span>' : ' <span class="req">·</span>'}`
+    wrapper.appendChild(label)
+
+    if (f.type === 'list') {
+      const ta = document.createElement('textarea')
+      ta.className = 'field-textarea list-field'
+      ta.id = `f_${f.id}`
+      ta.placeholder = f.placeholder
+      ta.value = saved[f.id] || ''
+      ta.rows = 4
+      ta.addEventListener('input', () => { saveField(f.id, ta.value); scheduleGen() })
+      const hint = document.createElement('div')
+      hint.className = 'field-hint'
+      hint.textContent = 'One item per line — each becomes a bullet point'
+      wrapper.appendChild(ta)
+      wrapper.appendChild(hint)
+    } else {
+      const ta = document.createElement('textarea')
+      ta.className = 'field-textarea'
+      ta.id = `f_${f.id}`
+      ta.placeholder = f.placeholder
+      ta.value = saved[f.id] || ''
+      ta.rows = f.rows || 3
+      ta.addEventListener('input', () => { saveField(f.id, ta.value); scheduleGen() })
+      wrapper.appendChild(ta)
+    }
+
+    container.appendChild(wrapper)
+  })
+
+  // Progress indicator
+  const prog = document.createElement('div')
+  prog.className = 'progress-bar'
+  prog.innerHTML = '<div class="progress-fill" id="progressFill" style="width:0%"></div>'
+  container.appendChild(prog)
+
+  updateProgress()
+}
+
+function saveField(id, value) {
+  formValues[mode][id] = value
+  // Debounced store save
+  clearTimeout(saveField._timer)
+  saveField._timer = setTimeout(() => save({ formValues }), 1000)
+}
+
+function updateProgress() {
+  const cfg = MODES[mode]
+  const required = cfg.fields.filter(f => !f.optional)
+  const filled = required.filter(f => (formValues[mode][f.id] || '').trim())
+  const pct = required.length ? Math.round(filled.length / required.length * 100) : 0
+  const fill = document.getElementById('progressFill')
+  if (fill) fill.style.width = pct + '%'
+}
+
+// ── Generate ──────────────────────────────────────────────────────
+function scheduleGen() {
+  updateProgress()
+  clearTimeout(autoTimer)
+  autoTimer = setTimeout(generate, 300)
+}
+
+function generate() {
+  const cfg = MODES[mode]
+  const profile = FORMAT_PROFILES[outputFormat]
+  const vals = formValues[mode]
+
+  const parts = []
+  parts.push(cfg.title)
+  parts.push('')
+  parts.push(profile.intro)
+
+  cfg.fields.forEach(f => {
+    const val = (vals[f.id] || '').trim()
+    if (!val) return
+
+    parts.push('')
+    parts.push(`## ${f.label}${f.optional ? ' (optional)' : ''}`)
+
+    if (f.type === 'list') {
+      const items = val.split('\n').map(l => l.trim()).filter(Boolean)
+      items.forEach(item => parts.push(`* ${item}`))
+    } else {
+      parts.push(val)
+    }
+  })
+
+  parts.push('')
+  parts.push('---')
+  parts.push('')
+  parts.push(OPERATING_RULES)
+  parts.push('')
+  parts.push(INSTRUCTIONS[mode])
+  if (profile.outro) {
+    parts.push('')
+    parts.push('## Agent-specific guidance')
+    parts.push('')
+    parts.push(profile.outro)
+  }
+
+  const text = parts.join('\n')
+  document.getElementById('charCount').textContent = `${(text.length/1000).toFixed(1)}k chars`
+  setOutput(highlight(text))
+  document.getElementById('statusText').textContent = 'Ready to copy'
+}
+
+// ── Syntax highlight ──────────────────────────────────────────────
+function highlight(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^(# .+)$/gm, '<span class="md-h1">$1</span>')
+    .replace(/^(## .+)$/gm, '<span class="md-h2">$1</span>')
+    .replace(/^(### .+)$/gm, '<span class="md-h3">$1</span>')
+    .replace(/^(---+)$/gm, '<span class="md-rule">$1</span>')
+    .replace(/(\[.+?\])/g, '<span class="md-bracket">$1</span>')
+    .replace(/^(\* .+)$/gm, '<span style="color:var(--text-sub)">$1</span>')
+    .replace(/^(\d+\. .+)$/gm, '<span style="color:var(--text-sub)">$1</span>')
+}
+
+function setOutput(html) {
+  const out = document.getElementById('promptOutput')
+  out.className = 'prompt-output'
+  out.innerHTML = html
+}
+
+// ── Copy ──────────────────────────────────────────────────────────
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = document.getElementById('promptOutput').innerText.trim()
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn')
+    btn.textContent = '✓ Copied!'
+    btn.classList.add('copied')
+    setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied') }, 1800)
+  })
+})
+
+// ── Clear ─────────────────────────────────────────────────────────
+document.getElementById('clearBtn').addEventListener('click', () => {
+  formValues[mode] = {}
+  renderForm()
+  generate()
+  document.getElementById('statusText').textContent = 'Cleared'
+  save({ formValues })
+})
+
+// ── Chips ─────────────────────────────────────────────────────────
+// ── Aliases ───────────────────────────────────────────────────────
+// ── Alias modal ───────────────────────────────────────────────────
+// ── Watched folder ────────────────────────────────────────────────
+// ── Persist ───────────────────────────────────────────────────────
+async function save(partial) {
+  store = { ...store, ...partial }
+  await api.post('/api/store', store)
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+init()
+</script>
+</body>
+</html>

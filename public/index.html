@@ -7,7 +7,7 @@
   :root {
     --bg0: #11111b; --bg1: #181825; --bg2: #1e1e2e; --bg3: #252535;
     --border: #313244; --text: #cdd6f4; --text-dim: #6c7086; --text-sub: #9399b2;
-    --feature: #a6e3a1; --bug: #f38ba8; --rework: #89b4fa; --fix: #fab387;
+    --feature: #a6e3a1; --bug: #f38ba8; --rework: #89b4fa; --fix: #fab387; --security: #f9e2af; --backend: #94e2d5; --frontend: #cba6f7;
     --accent: #cba6f7; --mode-color: var(--feature);
     --radius: 8px; --radius-sm: 5px;
     font-family: 'Segoe UI', system-ui, sans-serif;
@@ -21,7 +21,7 @@
   aside {
     width: 210px; flex-shrink: 0;
     background: var(--bg1); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; overflow: hidden;
+    display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto;
   }
 
   .workspace {
@@ -72,6 +72,12 @@
   .mode-btn.active[data-mode="bug"]     { background: #2e1a1e; color: var(--bug);     border-color: color-mix(in srgb,var(--bug) 40%,transparent); }
   .mode-btn.active[data-mode="rework"]  { background: #1a1f2e; color: var(--rework);  border-color: color-mix(in srgb,var(--rework) 40%,transparent); }
   .mode-btn.active[data-mode="fix"]     { background: #2e221a; color: var(--fix);     border-color: color-mix(in srgb,var(--fix) 40%,transparent); }
+  .mode-btn.active[data-mode="security"] { background: #2b281a; color: var(--security); border-color: color-mix(in srgb,var(--security) 40%,transparent); }
+  .mode-btn.active[data-mode="backend"]  { background: #182b29; color: var(--backend);  border-color: color-mix(in srgb,var(--backend) 40%,transparent); }
+  .mode-btn.active[data-mode="oversized"] { background: #182b29; color: var(--backend); border-color: color-mix(in srgb,var(--backend) 40%,transparent); }
+  .mode-btn.active[data-mode="frontend"] { background: #281d31; color: var(--frontend); border-color: color-mix(in srgb,var(--frontend) 40%,transparent); }
+  .mode-btn.active[data-mode^="agent_"],
+  .mode-btn.active[data-mode^="watcher_"] { background: #281d31; color: var(--accent); border-color: color-mix(in srgb,var(--accent) 40%,transparent); }
 
   /* ── Context shortcuts ── */
   /* ── Panel headers ── */
@@ -98,6 +104,8 @@
   }
   .field-label .opt { font-size: 9px; color: var(--text-dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
   .field-label .req { color: var(--mode-color); font-size: 12px; line-height: 1; }
+  .field-label .required-badge { color: #11111b; background: var(--mode-color); border-radius: 3px; padding: 1px 5px; font-size: 8px; letter-spacing: .08em; }
+  .field.required-field .field-textarea { border-color: color-mix(in srgb, var(--mode-color) 75%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--mode-color) 18%, transparent); }
 
   .field-input, .field-textarea {
     background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -145,6 +153,7 @@
   .btn-copy { background: transparent; color: var(--text-sub); border-color: var(--border); }
   .btn-copy:hover { color: var(--text); }
   .btn-copy.copied { color: var(--feature); border-color: var(--feature); }
+  .btn-copy:disabled { cursor: not-allowed; opacity: .45; color: var(--text-dim); }
 
   /* ── Statusbar ── */
   .statusbar { height: 22px; background: var(--bg1); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 12px; gap: 10px; flex-shrink: 0; }
@@ -192,6 +201,74 @@
       </div>
     </div>
 
+    <div class="sidebar-section">
+      <div class="section-title">Security</div>
+      <div class="mode-list">
+        <button class="mode-btn" data-mode="security">
+          <span class="m-icon">&#128737;</span>
+          <span><span style="display:block">Security Audit</span><span class="m-sub">Audit &amp; harden app</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Backend</div>
+      <div class="mode-list">
+        <button class="mode-btn" data-mode="backend">
+          <span class="m-icon">&#9881;</span>
+          <span><span style="display:block">Backend Refactor</span><span class="m-sub">Modularize &amp; simplify</span></span>
+        </button>
+        <button class="mode-btn" data-mode="oversized">
+          <span class="m-icon">&#128196;</span>
+          <span><span style="display:block">Oversized File</span><span class="m-sub">Split a target file</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Frontend</div>
+      <div class="mode-list">
+        <button class="mode-btn" data-mode="frontend">
+          <span class="m-icon">&#9638;</span>
+          <span><span style="display:block">Frontend Refactor</span><span class="m-sub">Modularize UI code</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Specialist Agents</div>
+      <div class="mode-list">
+        <button class="mode-btn" data-mode="agent_architect"><span class="m-icon">&#9635;</span><span><span style="display:block">Architect</span><span class="m-sub">Analyze &amp; plan</span></span></button>
+        <button class="mode-btn" data-mode="agent_feature"><span class="m-icon">&#9889;</span><span><span style="display:block">Implementation</span><span class="m-sub">Build a feature</span></span></button>
+        <button class="mode-btn" data-mode="agent_bug"><span class="m-icon">&#128269;</span><span><span style="display:block">Investigation</span><span class="m-sub">Find root cause</span></span></button>
+        <button class="mode-btn" data-mode="agent_refactor"><span class="m-icon">&#9851;</span><span><span style="display:block">Refactor</span><span class="m-sub">Improve structure</span></span></button>
+        <button class="mode-btn" data-mode="agent_security"><span class="m-icon">&#128737;</span><span><span style="display:block">Security</span><span class="m-sub">Find vulnerabilities</span></span></button>
+        <button class="mode-btn" data-mode="agent_qa"><span class="m-icon">&#10003;</span><span><span style="display:block">Test &amp; QA</span><span class="m-sub">Verify behavior</span></span></button>
+        <button class="mode-btn" data-mode="agent_api"><span class="m-icon">&#8644;</span><span><span style="display:block">API &amp; Database</span><span class="m-sub">Review data boundaries</span></span></button>
+        <button class="mode-btn" data-mode="agent_review"><span class="m-icon">&#128065;</span><span><span style="display:block">Code Review</span><span class="m-sub">Review current diff</span></span></button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Testing</div>
+      <div class="mode-list">
+        <button class="mode-btn" data-mode="agent_unit_tests"><span class="m-icon">&#10010;</span><span><span style="display:block">Generate Unit Tests</span><span class="m-sub">Test existing code</span></span></button>
+        <button class="mode-btn" data-mode="agent_feature_tests"><span class="m-icon">&#10024;</span><span><span style="display:block">Test New Feature</span><span class="m-sub">Protect new behavior</span></span></button>
+        <button class="mode-btn" data-mode="agent_coverage"><span class="m-icon">&#9638;</span><span><span style="display:block">Coverage Audit</span><span class="m-sub">Improve unit tests</span></span></button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Background Agents</div>
+      <div class="mode-list">
+        <button class="mode-btn" data-mode="watcher_security"><span class="m-icon">&#128737;</span><span><span style="display:block">Security Watcher</span><span class="m-sub">Monitor security risks</span></span></button>
+        <button class="mode-btn" data-mode="watcher_regression"><span class="m-icon">&#8634;</span><span><span style="display:block">Regression Watcher</span><span class="m-sub">Detect broken behavior</span></span></button>
+        <button class="mode-btn" data-mode="watcher_quality"><span class="m-icon">&#9670;</span><span><span style="display:block">Quality Watcher</span><span class="m-sub">Watch technical debt</span></span></button>
+        <button class="mode-btn" data-mode="watcher_architecture"><span class="m-icon">&#9635;</span><span><span style="display:block">Architecture Watcher</span><span class="m-sub">Detect pattern drift</span></span></button>
+        <button class="mode-btn" data-mode="watcher_dependencies"><span class="m-icon">&#9881;</span><span><span style="display:block">Dependency Watcher</span><span class="m-sub">Audit config changes</span></span></button>
+      </div>
+    </div>
+
   </aside>
 
   <!-- ── Workspace ── -->
@@ -233,9 +310,10 @@
   <span id="statusText">Ready</span>
 </div>
 
+<script src="agent-prompts.js"></script>
 <script>
 // ── Mode config ────────────────────────────────────────────────────
-const MODE_COLORS = { feature:'#a6e3a1', bug:'#f38ba8', rework:'#89b4fa', fix:'#fab387' }
+const MODE_COLORS = { feature:'#a6e3a1', bug:'#f38ba8', rework:'#89b4fa', fix:'#fab387', security:'#f9e2af', backend:'#94e2d5', oversized:'#94e2d5', frontend:'#cba6f7' }
 
 const MODES = {
   feature: {
@@ -275,8 +353,42 @@ const MODES = {
       { id:'steps',            label:'Steps to reproduce',                placeholder:'One step per line:\nCheckout main\nRun npm start\nNavigate to /dashboard', type:'list' },
       { id:'errors',           label:'Errors / logs',                     placeholder:'Paste relevant errors, logs, or stack traces.',                     type:'textarea', rows:3, optional:true },
     ]
+  },
+  security: {
+    label: 'Security Audit', title: '# Security Audit and Application Hardening',
+    fields: [
+      { id:'focus_areas', label:'Priority focus areas', placeholder:'One area per line:\nAuthentication and authorization\nFile uploads\nPublic API endpoints', type:'list', optional:true },
+      { id:'known_concerns', label:'Known concerns', placeholder:'Describe any suspected vulnerabilities, recent incidents, or sensitive workflows.', type:'textarea', rows:3, optional:true },
+      { id:'constraints', label:'Constraints', placeholder:'One constraint per line:\nPreserve existing API contracts\nDo not upgrade major dependencies', type:'list', optional:true },
+    ]
+  },
+  backend: {
+    label: 'Backend Refactor', title: '# Backend Refactor',
+    fields: [
+      { id:'target_areas', label:'Target areas', placeholder:'One area per line:\nAPI route handlers\nDatabase access layer\nAuthentication middleware', type:'list', optional:true },
+      { id:'known_problems', label:'Known problems', placeholder:'Describe oversized files, duplicated logic, tight coupling, or inconsistent patterns.', type:'textarea', rows:3, optional:true },
+      { id:'constraints', label:'Additional constraints', placeholder:'One constraint per line:\nPreserve all public API responses\nAvoid database migrations', type:'list', optional:true },
+    ]
+  },
+  oversized: {
+    label: 'Refactor Oversized File', title: '# Refactor an Oversized Backend File', requireComplete: true,
+    fields: [
+      { id:'target_file', label:'Target file', placeholder:'REQUIRED — enter a file path, e.g. src/routes/users.js', type:'textarea', rows:2, required:true },
+      { id:'known_concerns', label:'Known concerns', placeholder:'Describe responsibilities or problem areas you already know about.', type:'textarea', rows:3, optional:true },
+      { id:'constraints', label:'Additional constraints', placeholder:'One constraint per line:\nPreserve named exports\nKeep route registration unchanged', type:'list', optional:true },
+    ]
+  },
+  frontend: {
+    label: 'Frontend Refactor', title: '# Frontend Refactor',
+    fields: [
+      { id:'target_areas', label:'Target areas', placeholder:'One area per line:\nDashboard components\nForm state and validation\nAPI client usage', type:'list', optional:true },
+      { id:'known_problems', label:'Known problems', placeholder:'Describe oversized components, duplicated UI, fragile effects, or state-management issues.', type:'textarea', rows:3, optional:true },
+      { id:'constraints', label:'Additional constraints', placeholder:'One constraint per line:\nPreserve current visual design\nDo not change routes', type:'list', optional:true },
+    ]
   }
 }
+Object.assign(MODES, window.AGENT_MODES)
+Object.keys(window.AGENT_MODES).forEach(key => { MODE_COLORS[key] = '#cba6f7' })
 
 // ── Fixed instruction blocks ───────────────────────────────────────
 const INSTRUCTIONS = {
@@ -466,8 +578,981 @@ Finish with:
 * The tests and validation commands run.
 * Any related areas that may require additional testing.
 
-Do not only describe the fix. Inspect the repository, modify the files, and validate both the restored and newer behavior directly.`
+Do not only describe the fix. Inspect the repository, modify the files, and validate both the restored and newer behavior directly.`,
+
+  security: `## Primary objective
+
+Audit the application for security weaknesses across the frontend, backend, APIs, authentication, authorization, session handling, database access, file uploads, input validation, dependency usage, environment variables, secrets handling, error handling, logging, CORS, HTTP headers, rate limiting, injection risks, XSS, CSRF, SSRF, path traversal, insecure direct object references, privilege escalation, sensitive data exposure, unsafe deserialization, command execution, file-system access, dependency vulnerabilities, and production configuration.
+
+Use OWASP-style security principles as a guide, but evaluate the actual architecture of this repository rather than applying generic fixes blindly.
+
+## Phase 1: Understand the application
+
+Before modifying files:
+
+1. Inspect the repository structure.
+2. Read the main configuration files.
+3. Identify the frontend and backend frameworks.
+4. Identify authentication and authorization mechanisms.
+5. Identify database access patterns and ORM/query usage.
+6. Identify API routes and privileged operations.
+7. Identify file upload or file-processing functionality.
+8. Identify environment variables and secret usage.
+9. Review dependency manifests and lock files.
+10. Review existing security middleware and protections.
+11. Review current tests related to authentication, permissions, and validation.
+
+Do not make changes yet.
+
+## Phase 2: Perform a security audit
+
+Inspect the codebase for vulnerabilities and insecure patterns.
+
+Pay particular attention to:
+
+### Authentication
+
+Check for weak or plaintext password handling, incorrect hashing, missing brute-force protection, account enumeration, weak password reset flows, missing token expiration, insecure JWT configuration, insecure token storage, and authentication bypasses.
+
+### Authorization
+
+Check for missing role or ownership checks, IDOR vulnerabilities, horizontal or vertical privilege escalation, frontend-only authorization, and sensitive routes without server-side permission checks. Never assume hiding a button in the UI is sufficient authorization.
+
+### Input validation
+
+Review every externally controlled input source, including request bodies, query and route parameters, headers, cookies, form fields, file names, uploads, webhooks, and database-derived content that may contain user-controlled data. Look for SQL or NoSQL injection, command injection, XSS, path traversal, unsafe redirects, SSRF, prototype pollution, and unsafe parsing.
+
+### Database security
+
+Check for raw queries built with string concatenation, missing parameterization, overly broad database permissions, sensitive information unnecessarily returned to clients, missing ownership checks, and mass-assignment vulnerabilities.
+
+### API security
+
+Review authentication, authorization, data validation, rate limiting, request size limits, pagination limits, error responses, and sensitive fields returned from endpoints.
+
+### CORS
+
+Flag wildcard origins in production, credentials with overly broad origins, and unnecessary HTTP methods or headers.
+
+### Cookies and sessions
+
+When applicable, verify HttpOnly, Secure, SameSite, session expiration, session invalidation, and session fixation protection.
+
+### Secrets and environment variables
+
+Search for API keys, database credentials, private keys, tokens, and passwords. Do not print secret values in the output. If secrets appear committed, flag them clearly and recommend rotation. Do not automatically delete or rotate credentials.
+
+### File uploads
+
+If uploads are supported, inspect file type and size limits, MIME and extension validation, filename sanitization, path traversal, storage locations, public accessibility, executable uploads, and malware-related risk.
+
+### HTTP security
+
+Evaluate whether the architecture should use Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Strict-Transport-Security, frame protections, and Permissions-Policy. Only add headers appropriate for the application architecture.
+
+### Dependencies
+
+Inspect dependency manifests and lock files. Use available package-manager security tooling when possible, such as npm audit, pnpm audit, yarn audit, pip-audit, safety, composer audit, or cargo audit. Do not blindly upgrade major dependencies. Identify vulnerable dependencies first and evaluate whether upgrades could introduce breaking changes.
+
+## Phase 3: Produce findings before changing code
+
+Before implementing fixes, summarize the vulnerabilities found. Classify each as Critical, High, Medium, Low, or Informational.
+
+For each finding include the vulnerability, severity, affected file or component, attack scenario, potential impact, and recommended remediation. Prioritize realistically exploitable vulnerabilities and avoid purely theoretical issues unless they have meaningful security implications.
+
+## Phase 4: Harden the application
+
+After identifying the findings, fix issues where remediation is reasonably safe and compatible with the existing architecture.
+
+Prioritize authentication bypasses, authorization vulnerabilities, injection vulnerabilities, sensitive data exposure, secret leakage, file upload vulnerabilities, XSS, CSRF where applicable, SSRF, dangerous server-side execution, insecure session handling, unsafe CORS, missing validation, missing security headers, and rate limiting on sensitive endpoints.
+
+Follow these rules:
+
+* Do not rewrite unrelated functionality or change the architecture unnecessarily.
+* Do not break existing API contracts unless required for security.
+* Do not remove functionality simply because it creates security complexity.
+* Use existing libraries and middleware where appropriate and avoid unnecessary dependencies.
+* Do not implement custom cryptography.
+* Do not expose secrets in logs or output.
+* Do not disable security controls to make tests pass.
+* Do not suppress errors without addressing the underlying issue.
+* Preserve existing behavior wherever safely possible.
+
+## Phase 5: Authorization review
+
+For every route that reads private data, modifies or deletes data, manages users or roles, accesses administrative functionality, or accesses financial, medical, or otherwise sensitive records, confirm that authorization is enforced on the server. Check both role-based permissions and resource ownership. Explicitly look for cases where changing an ID could expose another user's data.
+
+## Phase 6: Add security tests
+
+Where practical, add regression tests for security-sensitive behavior. Verify that protected endpoints reject unauthenticated users, normal users cannot access admin endpoints, users cannot retrieve another user's private resources, invalid and malicious input is safely rejected, expired tokens are rejected, invalid or oversized uploads fail, and sensitive fields are not returned.
+
+Do not write exploit code beyond what is necessary to safely validate the application's own defenses.
+
+## Phase 7: Validate the changes
+
+Run all relevant available tests, formatter, linter, type checker, build, dependency audit, and security-related tests. Fix issues caused by the changes.
+
+Then review the final Git diff and confirm that no unrelated files changed, no secrets were added, no debugging code remains, existing functionality remains intact, and security controls are enforced server-side.
+
+## Final report
+
+Finish with:
+
+### Executive summary
+
+Briefly describe the application's security posture before and after the changes.
+
+### Vulnerabilities found
+
+For each issue include severity, vulnerability, affected component, risk, and fix applied.
+
+### Files changed
+
+List all modified or newly created files.
+
+### Security improvements
+
+Explain the protections added or strengthened.
+
+### Validation
+
+List the commands and tests run.
+
+### Remaining risks
+
+Identify vulnerabilities or architectural risks not automatically fixed and explain why they require manual review or a larger architectural change.
+
+### Recommended next steps
+
+Prioritize any remaining security work.
+
+Important: Do not only produce a security report. Inspect the repository, make safe security improvements directly, run the available validation tools, and report exactly what changed.`,
+
+  backend: `You are working directly inside an existing backend repository.
+
+Your task is to refactor the backend to improve maintainability, modularity, readability, testability, and scalability without changing existing application behavior unless explicitly required.
+
+## Primary goal
+
+Refactor the backend so that responsibilities are clearly separated and oversized files, tightly coupled logic, duplicated code, and inconsistent patterns are reduced.
+
+Do not perform a full rewrite.
+
+## Phase 1: Understand the backend
+
+Before modifying files:
+
+1. Inspect the repository structure.
+2. Identify the backend framework and runtime.
+3. Identify:
+
+   * Entry points
+   * Routes
+   * Controllers
+   * Services
+   * Models
+   * Database access
+   * Middleware
+   * Authentication
+   * Authorization
+   * Validation
+   * Utilities
+   * External API integrations
+   * Background jobs
+   * Configuration
+   * Tests
+4. Trace the request lifecycle from incoming request to response.
+5. Identify dependencies between modules.
+6. Find oversized files, duplicated logic, mixed responsibilities, circular dependencies, and tightly coupled code.
+
+Do not start moving code immediately.
+
+## Phase 2: Create a refactor plan
+
+Before editing files, provide a concise refactor plan.
+
+Identify:
+
+* Files that should remain unchanged.
+* Files that should be split.
+* New modules that should be created.
+* Logic that should move into services or utilities.
+* Database logic that should be separated from request handling.
+* Validation that should be centralized.
+* Middleware that should be extracted.
+* Shared logic that should be reused instead of duplicated.
+* Areas that are too risky to refactor right now.
+
+Prioritize changes that provide the highest maintainability benefit with the lowest regression risk.
+
+## Refactoring principles
+
+Use the architecture already established in the repository when it is reasonable.
+
+Prefer clear separation such as:
+
+Route
+→ Controller / Handler
+→ Service
+→ Repository / Data Access
+→ Database
+
+when appropriate for this project.
+
+Do not introduce architectural layers only for the sake of abstraction.
+
+Keep responsibilities focused:
+
+### Routes
+
+Routes should primarily handle:
+
+* URL definitions
+* Middleware composition
+* Mapping requests to handlers
+
+Avoid putting large amounts of business logic directly in routes.
+
+### Controllers / Handlers
+
+Controllers should primarily handle:
+
+* Reading validated request data
+* Calling services
+* Mapping service results to HTTP responses
+
+Avoid embedding large business workflows or database queries directly in controllers.
+
+### Services
+
+Services should contain:
+
+* Business rules
+* Application workflows
+* Reusable domain logic
+* Coordination between repositories or external services
+
+Services should not depend directly on HTTP request or response objects unless the existing architecture requires it.
+
+### Repository / Data Access
+
+Database logic should be isolated when appropriate.
+
+Avoid scattering queries throughout unrelated modules.
+
+Use existing ORM or database conventions consistently.
+
+### Validation
+
+Centralize request validation where practical.
+
+Do not duplicate validation logic across multiple routes.
+
+### Middleware
+
+Use middleware for cross-cutting concerns such as:
+
+* Authentication
+* Authorization
+* Logging
+* Rate limiting
+* Request parsing
+* Error handling
+
+Do not hide core business logic inside middleware.
+
+## Phase 3: Refactor incrementally
+
+Perform the refactor in small, safe steps.
+
+For each major step:
+
+1. Move or extract one logical responsibility.
+2. Update imports and references.
+3. Run relevant tests.
+4. Fix issues before continuing.
+5. Preserve API behavior.
+
+Do not perform massive file moves and rewrites in one step unless necessary.
+
+## Important constraints
+
+Do not:
+
+* Change endpoint URLs unnecessarily.
+* Change response formats unnecessarily.
+* Change database schemas unless explicitly required.
+* Rename public APIs without a migration reason.
+* Remove working functionality.
+* Introduce new dependencies without strong justification.
+* Create unnecessary abstractions.
+* Duplicate code during migration.
+* Leave temporary compatibility code unless documented.
+* Modify unrelated frontend code.
+
+Preserve:
+
+* Existing endpoint behavior
+* Authentication
+* Authorization
+* Error responses where relied upon
+* Database behavior
+* Existing environment variables
+* Existing integrations
+* Public contracts
+
+## Oversized files
+
+Pay particular attention to files that have become too large.
+
+For each oversized file:
+
+1. Identify distinct responsibilities.
+2. Group related functions.
+3. Extract cohesive modules.
+4. Keep module boundaries clear.
+5. Avoid creating many tiny files with only one trivial function unless there is a clear architectural reason.
+
+The goal is better cohesion, not simply fewer lines per file.
+
+## Error handling
+
+Review error handling during the refactor.
+
+Prefer:
+
+* Centralized error handling
+* Consistent error types
+* Clear logging
+* Safe client responses
+
+Avoid:
+
+* Repeated try/catch blocks containing identical logic
+* Swallowing errors
+* Returning stack traces to clients
+* Logging sensitive values
+
+## Configuration
+
+Review configuration handling.
+
+Ensure:
+
+* Environment variables are accessed consistently.
+* Configuration is centralized when practical.
+* Secrets are not hardcoded.
+* Development and production behavior are clearly separated.
+
+Do not change environment variable names unnecessarily.
+
+## Tests
+
+Preserve existing tests.
+
+Add tests where refactoring exposes important untested behavior.
+
+Prioritize tests around:
+
+* Core business logic
+* Authentication
+* Authorization
+* Database writes
+* Important API routes
+* Error handling
+
+The refactor should not rely only on manual testing.
+
+## Validation
+
+After each meaningful phase and again at the end, run the repository's available:
+
+* Tests
+* Linter
+* Formatter
+* Type checker
+* Build
+* Static analysis
+
+Fix issues caused by your changes.
+
+Review the final Git diff.
+
+Confirm:
+
+* No unrelated behavior changed.
+* No dead imports remain.
+* No duplicated old implementation remains.
+* No temporary debug code remains.
+* Existing APIs still work.
+
+## Final report
+
+Finish with:
+
+### Architecture before
+
+Summarize the main backend structure and problems you found.
+
+### Refactor performed
+
+Explain what responsibilities were separated or reorganized.
+
+### Files changed
+
+List:
+
+* Created files
+* Modified files
+* Removed files
+
+### Behavior preservation
+
+Explain how you verified that the backend still behaves as expected.
+
+### Validation
+
+List all tests and commands run.
+
+### Remaining technical debt
+
+Identify areas that should be refactored later but were intentionally left unchanged due to regression risk.
+
+Do not only provide recommendations.
+
+Inspect the repository, perform the refactor directly, and validate the resulting backend.`,
+
+  oversized: `You are working directly inside an existing backend repository.
+
+The backend file identified under **Target file** has become too large and difficult to maintain.
+
+Your task is to refactor this file into a cleaner modular structure without changing existing functionality.
+
+## First, analyze the file
+
+Before making any changes:
+
+1. Read the entire target file.
+2. Identify every major responsibility contained inside it.
+3. Group functions by responsibility.
+4. Identify:
+
+   * Route definitions
+   * Request handlers
+   * Business logic
+   * Database queries
+   * Validation
+   * Authentication or authorization
+   * External API calls
+   * Helper functions
+   * Configuration
+   * Error handling
+5. Search the repository for every import and reference to this file.
+6. Identify which parts are tightly coupled and which can safely be extracted.
+
+Do not begin refactoring until you understand how the file is used elsewhere.
+
+## Propose the new structure
+
+Before editing, show the proposed module structure.
+
+For example:
+
+src/
+routes/
+controllers/
+services/
+repositories/
+middleware/
+validators/
+utils/
+
+Use the repository's existing conventions rather than forcing this exact structure.
+
+For each proposed file, explain its responsibility.
+
+## Refactor rules
+
+Refactor incrementally.
+
+Do not simply cut the large file into arbitrary smaller files.
+
+Modules should be divided by clear responsibilities.
+
+Prefer high cohesion and low coupling.
+
+Keep:
+
+* Route contracts unchanged.
+* Request and response formats unchanged.
+* Database behavior unchanged.
+* Authentication behavior unchanged.
+* Authorization behavior unchanged.
+* Environment variable names unchanged.
+* Existing business rules unchanged.
+
+Avoid:
+
+* Circular dependencies
+* Duplicate code
+* Global mutable state
+* New unnecessary dependencies
+* Generic "helpers" files containing unrelated functions
+* Deep abstraction layers without practical value
+
+## Extract business logic
+
+Move business rules out of route handlers where appropriate.
+
+Route handlers should generally:
+
+1. Receive a request.
+2. Read validated input.
+3. Call the appropriate service.
+4. Return a response.
+
+Business workflows should live in focused service modules.
+
+## Extract database logic
+
+When practical, separate database access from business logic.
+
+Do not rewrite working queries unless necessary.
+
+Preserve transaction behavior.
+
+## Extract reusable helpers
+
+Only extract helpers that represent reusable or cohesive behavior.
+
+Do not create unnecessary wrappers around one-line expressions.
+
+## Imports
+
+After moving code:
+
+* Update all imports.
+* Remove unused imports.
+* Check for circular dependencies.
+* Verify module resolution.
+* Preserve exported interfaces when possible.
+
+## Validate incrementally
+
+After each significant extraction:
+
+1. Run the relevant tests.
+2. Run the type checker if available.
+3. Run the linter.
+4. Start or build the backend if possible.
+5. Fix failures before moving to the next extraction.
+
+Do not wait until the entire refactor is finished before validating.
+
+## Final review
+
+At the end:
+
+1. Review the Git diff.
+2. Verify that the original oversized file contains only responsibilities that truly belong there.
+3. Search for duplicate implementations left behind.
+4. Search for dead imports and unused functions.
+5. Confirm that no API contract changed accidentally.
+
+Finish with:
+
+* Original responsibilities of the file.
+* New module structure.
+* Files created.
+* Files modified.
+* Approximate responsibilities moved into each module.
+* Tests and validation commands run.
+* Any remaining areas that should be refactored later.
+
+Do not only suggest how the file could be broken apart.
+
+Perform the refactor directly and validate it.`,
+
+  frontend: `You are working directly inside an existing frontend repository.
+
+Your task is to refactor the frontend to improve maintainability, readability, modularity, reuse, testability, and scalability without changing existing user-facing behavior unless explicitly requested.
+
+## Primary goal
+
+Refactor the frontend so that:
+
+* Large components are broken into focused modules.
+* Reusable UI is extracted appropriately.
+* State management is easier to understand.
+* API logic is separated from presentation logic.
+* Duplicate logic is reduced.
+* Side effects are easier to trace.
+* Forms and validation are consistent.
+* Routing and permissions remain intact.
+* Styling remains visually consistent.
+
+Do not perform a full rewrite.
+
+## Phase 1: Understand the frontend
+
+Before modifying files:
+
+1. Inspect the repository structure.
+2. Identify the frontend framework and build system.
+3. Identify:
+
+   * Application entry points
+   * Pages
+   * Components
+   * Layouts
+   * Routes
+   * Hooks
+   * State management
+   * Context providers
+   * API clients
+   * Authentication
+   * Authorization
+   * Forms
+   * Validation
+   * Styling
+   * Shared utilities
+   * Tests
+4. Trace important user flows from route entry through API calls and rendered state.
+5. Identify dependencies between major components.
+6. Find:
+
+   * Oversized components
+   * Deep prop drilling
+   * Duplicate UI
+   * Duplicate API calls
+   * Repeated validation
+   * Unnecessary re-renders
+   * Mixed business and presentation logic
+   * Fragile effects
+   * Large context providers
+   * Dead components
+   * Inconsistent naming or folder structure
+
+Do not start moving files immediately.
+
+## Phase 2: Create a refactor plan
+
+Before editing, provide a concise plan.
+
+Identify:
+
+* Components that should remain unchanged.
+* Components that should be split.
+* Shared UI that should be extracted.
+* Logic that should move into hooks.
+* API logic that should move into services or clients.
+* State that should remain local versus shared.
+* Context or global state that is too broad.
+* Forms that could share validation.
+* Areas where refactoring creates a high regression risk.
+
+Prioritize high-value, low-risk improvements first.
+
+## Refactoring principles
+
+Use the architecture already present in the repository when it is reasonable.
+
+Do not introduce a new state-management library, design system, or architecture unless there is a clear need.
+
+Prefer separation such as:
+
+Page
+→ Feature Component
+→ Presentational Component
+
+and, where appropriate:
+
+Component
+→ Custom Hook
+→ API Service
+
+Do not add layers only for the sake of abstraction.
+
+## Components
+
+Components should have a clear responsibility.
+
+Extract a component when:
+
+* A large section has its own responsibility.
+* It is reused.
+* It contains substantial isolated logic.
+* Extracting it makes the parent easier to understand.
+
+Do not create excessive tiny components that add indirection without value.
+
+## Hooks
+
+Move reusable stateful logic into custom hooks where appropriate.
+
+Good candidates include:
+
+* Data fetching
+* Form state
+* Pagination
+* Search
+* Filtering
+* Modal state
+* Authentication behavior
+* Permission checks
+* Debounced input
+* Repeated effects
+
+Avoid hooks that merely wrap a single trivial state variable.
+
+## API logic
+
+Review how the frontend communicates with the backend.
+
+Prefer centralized API logic where practical.
+
+Avoid:
+
+* Hardcoded API URLs throughout components.
+* Repeated fetch or Axios configuration.
+* Duplicate error handling.
+* Direct network calls scattered across presentation components.
+
+Preserve existing endpoint contracts.
+
+## State management
+
+Review:
+
+* Local component state
+* Context
+* Global stores
+* Server state
+* URL state
+
+Keep state as close as possible to where it is used.
+
+Do not move everything into global state.
+
+Look for:
+
+* Duplicated state
+* Derived state stored unnecessarily
+* State that can be computed
+* Context providers causing broad re-renders
+* State shared only because of prop drilling
+
+## Effects
+
+Review useEffect or equivalent side-effect logic carefully.
+
+Look for:
+
+* Missing dependencies
+* Infinite render loops
+* Duplicate API requests
+* Stale closures
+* Effects doing too many unrelated things
+* Derived state that does not need an effect
+* Cleanup functions that are missing
+
+Do not change effect behavior without understanding the user-flow impact.
+
+## Forms
+
+Review form implementations.
+
+Check for:
+
+* Duplicate validation
+* Inconsistent error display
+* Inconsistent submission handling
+* Missing loading states
+* Double submission
+* Reset behavior
+* Server validation errors
+* Accessibility concerns
+
+Preserve current form behavior unless explicitly changing it.
+
+## Authentication and authorization
+
+Do a dedicated pass on:
+
+* Protected routes
+* Role-based UI
+* Permission checks
+* Authentication context
+* Session/token handling
+* Redirects
+
+Preserve security behavior.
+
+Do not rely on frontend checks as a replacement for backend authorization.
+
+## Styling
+
+Preserve the current visual design.
+
+Do not redesign the interface unless requested.
+
+Refactor styling only where it improves consistency or removes duplication.
+
+Avoid introducing a new CSS framework or design system without clear justification.
+
+Verify responsive layouts after moving components.
+
+## Accessibility
+
+While refactoring, preserve or improve:
+
+* Labels
+* Keyboard navigation
+* Button semantics
+* Form accessibility
+* ARIA attributes where necessary
+* Focus handling
+* Modal behavior
+
+Do not remove accessibility behavior for cleaner code.
+
+## Performance
+
+Look for obvious performance problems such as:
+
+* Expensive calculations on every render
+* Unnecessary re-renders
+* Large lists rendered without need
+* Duplicate requests
+* Unstable callback or object creation causing downstream renders
+
+Only add memoization where there is a clear reason.
+
+Do not blanket the application with memo, useMemo, or useCallback.
+
+## Phase 3: Refactor incrementally
+
+Refactor in small, safe steps.
+
+For each major step:
+
+1. Extract or simplify one responsibility.
+2. Update imports and references.
+3. Run relevant tests.
+4. Run linting and type checking.
+5. Verify the affected user flow.
+6. Fix regressions before continuing.
+
+Avoid a single massive frontend rewrite.
+
+## Important constraints
+
+Do not:
+
+* Change routes unnecessarily.
+* Change API contracts.
+* Change user-visible behavior without a requirement.
+* Change authentication behavior.
+* Change permission behavior.
+* Rename public component APIs without updating all consumers.
+* Introduce unnecessary dependencies.
+* Replace working libraries merely because another library is newer.
+* Modify unrelated backend code.
+* Redesign the UI.
+
+Preserve:
+
+* User flows
+* Navigation
+* Forms
+* Validation behavior
+* Loading behavior
+* Error states
+* Authentication
+* Authorization
+* Responsive behavior
+* Existing styling
+
+## Tests
+
+Preserve existing tests.
+
+Add or update tests where the refactor exposes important untested behavior.
+
+Prioritize tests around:
+
+* Navigation
+* Forms
+* Authentication
+* Protected routes
+* Important buttons and actions
+* Data-fetching states
+* Error states
+* Role-based UI
+* Core user workflows
+
+## Validation
+
+After each meaningful phase and again at the end, run the repository's available:
+
+* Tests
+* Formatter
+* Linter
+* Type checker
+* Build
+
+If the project supports end-to-end tests, run the relevant flows.
+
+Fix failures caused by your changes.
+
+Review the final Git diff.
+
+Confirm:
+
+* No unrelated functionality changed.
+* No dead imports remain.
+* No duplicate old components remain.
+* No temporary debug logging remains.
+* No styling regressions were intentionally introduced.
+* Existing routes and major user flows still work.
+
+## Final report
+
+Finish with:
+
+### Frontend before
+
+Summarize the major structural issues you found.
+
+### Refactor performed
+
+Explain what was reorganized and why.
+
+### Files changed
+
+List:
+
+* Created files
+* Modified files
+* Removed files
+
+### Behavior preservation
+
+Explain how you verified that the user experience remains unchanged.
+
+### Validation
+
+List all tests and commands run.
+
+### Remaining technical debt
+
+Identify frontend areas intentionally left unchanged because refactoring them would create unnecessary regression risk.
+
+Do not only recommend changes.
+
+Inspect the repository, perform the refactor directly, and validate the resulting frontend.`
 }
+Object.assign(INSTRUCTIONS, window.AGENT_PROMPTS)
 
 // ── State ──────────────────────────────────────────────────────────
 const FORMAT_PROFILES = {
@@ -521,7 +1606,8 @@ const api = {
 }
 
 // Per-mode form values (in-memory)
-const formValues = { feature:{}, bug:{}, rework:{}, fix:{} }
+const formValues = { feature:{}, bug:{}, rework:{}, fix:{}, security:{}, backend:{}, oversized:{}, frontend:{} }
+Object.keys(window.AGENT_MODES).forEach(key => { formValues[key] = {} })
 
 // ── Init ──────────────────────────────────────────────────────────
 async function init() {
@@ -570,12 +1656,13 @@ function renderForm() {
 
   cfg.fields.forEach(f => {
     const wrapper = document.createElement('div')
-    wrapper.className = 'field'
+    wrapper.className = `field${f.required ? ' required-field' : ''}`
 
     const label = document.createElement('label')
     label.className = 'field-label'
     label.htmlFor = `f_${f.id}`
     label.innerHTML = `${f.label}${f.optional ? ' <span class="opt">(optional)</span>' : ' <span class="req">·</span>'}`
+    if (f.required) label.innerHTML = `${f.label} <span class="required-badge">REQUIRED</span>`
     wrapper.appendChild(label)
 
     if (f.type === 'list') {
@@ -598,6 +1685,8 @@ function renderForm() {
       ta.placeholder = f.placeholder
       ta.value = saved[f.id] || ''
       ta.rows = f.rows || 3
+      ta.required = Boolean(f.required)
+      if (f.required) ta.setAttribute('aria-required', 'true')
       ta.addEventListener('input', () => { saveField(f.id, ta.value); scheduleGen() })
       wrapper.appendChild(ta)
     }
@@ -641,20 +1730,28 @@ function generate() {
   const cfg = MODES[mode]
   const profile = FORMAT_PROFILES[outputFormat]
   const vals = formValues[mode]
+  const copyBtn = document.getElementById('copyBtn')
+  const missingRequired = cfg.fields.filter(f => !f.optional && !(vals[f.id] || '').trim())
+
+  copyBtn.disabled = Boolean(cfg.requireComplete && missingRequired.length)
 
   const parts = []
   parts.push(cfg.title)
-  parts.push('')
-  parts.push(profile.intro)
+  if (!cfg.standalone) {
+    parts.push('')
+    parts.push(profile.intro)
+  }
 
   cfg.fields.forEach(f => {
     const val = (vals[f.id] || '').trim()
-    if (!val) return
+    if (!val && !f.required) return
 
     parts.push('')
     parts.push(`## ${f.label}${f.optional ? ' (optional)' : ''}`)
 
-    if (f.type === 'list') {
+    if (!val && f.required) {
+      parts.push(`[REQUIRED: ENTER ${f.label.toUpperCase()}]`)
+    } else if (f.type === 'list') {
       const items = val.split('\n').map(l => l.trim()).filter(Boolean)
       items.forEach(item => parts.push(`* ${item}`))
     } else {
@@ -662,13 +1759,15 @@ function generate() {
     }
   })
 
-  parts.push('')
-  parts.push('---')
-  parts.push('')
-  parts.push(OPERATING_RULES)
+  if (!cfg.standalone) {
+    parts.push('')
+    parts.push('---')
+    parts.push('')
+    parts.push(OPERATING_RULES)
+  }
   parts.push('')
   parts.push(INSTRUCTIONS[mode])
-  if (profile.outro) {
+  if (!cfg.standalone && profile.outro) {
     parts.push('')
     parts.push('## Agent-specific guidance')
     parts.push('')
@@ -678,7 +1777,8 @@ function generate() {
   const text = parts.join('\n')
   document.getElementById('charCount').textContent = `${(text.length/1000).toFixed(1)}k chars`
   setOutput(highlight(text))
-  document.getElementById('statusText').textContent = 'Ready to copy'
+  const missingLabels = missingRequired.map(field => field.label).join(', ')
+  document.getElementById('statusText').textContent = copyBtn.disabled ? `${missingLabels} required before copying` : 'Ready to copy'
 }
 
 // ── Syntax highlight ──────────────────────────────────────────────
@@ -702,6 +1802,7 @@ function setOutput(html) {
 
 // ── Copy ──────────────────────────────────────────────────────────
 document.getElementById('copyBtn').addEventListener('click', () => {
+  if (document.getElementById('copyBtn').disabled) return
   const text = document.getElementById('promptOutput').innerText.trim()
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {
